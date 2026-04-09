@@ -27,7 +27,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cb{width:18px;height:18px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .1s;flex-shrink:0}
 .cb.sel{border-color:#fff;transform:scale(1.2)}
 .add-btn{font-size:12px;padding:8px 14px;border-radius:var(--r);border:0.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;transition:background .1s}
-.add-btn:hover{background:var(--bg3)}
+.add-btn:disabled{opacity:0.5;cursor:wait}
 .today-view{display:flex;flex-direction:column;gap:8px}
 .today-summary{display:flex;gap:8px;margin-bottom:4px}
 .summary-chip{flex:1;text-align:center;padding:10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text2)}
@@ -71,7 +71,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ycell.tring{box-shadow:0 0 0 1.5px rgba(255,255,255,.5);border-radius:3px}
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:14px}
 #tip{position:fixed;background:#111;border:0.5px solid var(--border2);color:var(--text);padding:5px 9px;border-radius:6px;font-size:11px;pointer-events:none;z-index:999;white-space:nowrap;display:none}
-
 .auth-panel{display:none;text-align:center;margin-top:80px}
 .auth-box{background:#1a1a1a;border-radius:16px;padding:2rem;max-width:320px;margin:0 auto;border:0.5px solid rgba(255,255,255,0.09)}
 .auth-box h2{margin-bottom:1.5rem;font-weight:600;letter-spacing:-0.3px}
@@ -109,32 +108,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button id="loginBtn" class="auth-btn auth-btn-primary" onclick="doLogin()">Iniciar sesión</button>
     <button class="auth-btn auth-btn-secondary" onclick="showRegister()">Crear cuenta</button>
   </div>
+  <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 1rem;">
+    <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
+  </div>
 </div>
 
 <div id="registerPanel" class="auth-panel">
   <div class="auth-box">
     <h2>Crear cuenta</h2>
     <div id="registerMsg" class="auth-msg"></div>
-
     <div class="field-wrap">
       <input type="email" id="regEmail" class="auth-input" placeholder="Email">
       <div class="field-error" id="errEmail">Ingresa un email válido</div>
     </div>
-
     <div class="field-wrap">
       <input type="text" id="regUsername" class="auth-input" placeholder="Usuario">
       <div class="field-hint">Mínimo 2 caracteres</div>
       <div class="field-error" id="errUsername">El usuario debe tener al menos 2 caracteres</div>
     </div>
-
     <div class="field-wrap" style="margin-bottom:20px">
       <input type="password" id="regPassword" class="auth-input" placeholder="Contraseña">
       <div class="field-hint">Mínimo 6 caracteres</div>
       <div class="field-error" id="errPassword">La contraseña debe tener al menos 6 caracteres</div>
     </div>
-
     <button id="registerBtn" class="auth-btn auth-btn-primary" onclick="doRegister()">Registrarse</button>
     <button class="auth-btn auth-btn-secondary" onclick="showLogin()">Volver</button>
+  </div>
+  <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 1rem;">
+    <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
   </div>
 </div>
 
@@ -150,7 +151,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="add-row">
       <input type="text" id="nn" placeholder="Nueva actividad..." maxlength="40"/>
       <div class="colors" id="cp"></div>
-      <button class="add-btn" onclick="addHabit()">+ Agregar</button>
+      <button id="addBtn" class="add-btn" onclick="addHabit()">+ Agregar</button>
     </div>
     <div class="tabs">
       <button class="tab active" onclick="setTab('hoy',this)">Hoy</button>
@@ -158,13 +159,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="tab" onclick="setTab('año',this)">Año</button>
     </div>
     <div id="mc"></div>
-    
     <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 0.5px solid rgba(255,255,255,0.08);">
-      <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">
-        ✦ by William ✦
-      </p>
+      <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
     </div>
-    
   </div>
 </div>
 
@@ -173,7 +170,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const API = 'https://habit-backend.fly.dev/api';
 let authToken = localStorage.getItem('ht_token');
+let renderTimeout = null;
 
+function optimizedRender() {
+  if (renderTimeout) clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => { render(); renderTimeout = null; }, 30);
+}
 
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
@@ -185,17 +187,11 @@ function hideMsg(id) {
   const el = document.getElementById(id);
   el.style.display = 'none';
 }
-function showFieldError(id, show) {
-  document.getElementById(id).style.display = show ? 'block' : 'none';
-  const input = document.getElementById(id.replace('err','reg').replace('Email','Email').replace('Username','Username').replace('Password','Password'));
-  if(input) input.classList.toggle('error', show);
-}
 function setLoading(btnId, loading, defaultText) {
   const btn = document.getElementById(btnId);
   btn.disabled = loading;
   btn.innerHTML = loading ? '<span class="loading-dots">Cargando</span>' : defaultText;
 }
-
 
 function validateRegister(email, username, password) {
   let valid = true;
@@ -227,7 +223,6 @@ function validateRegister(email, username, password) {
   return valid;
 }
 
-
 async function apiFetch(path, options = {}) {
   const res = await fetch(API + path, {
     ...options,
@@ -252,7 +247,7 @@ async function loadHabitsFromAPI() {
     days: Object.fromEntries((h.completedDates || []).map(d => [d, true]))
   }));
   save();
-  render();
+  optimizedRender();
 }
 
 async function toggleDayAPI(habitId, dateKey) {
@@ -277,17 +272,14 @@ async function deleteHabitAPI(habitId) {
   return res && res.ok;
 }
 
-
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   hideMsg('loginMsg');
-
   if (!email || !password) {
     showMsg('loginMsg', 'Completa todos los campos', 'error');
     return;
   }
-
   setLoading('loginBtn', true, 'Iniciar sesión');
   try {
     const res = await fetch(API + '/auth/login', {
@@ -297,8 +289,7 @@ async function doLogin() {
     });
     const text = await res.text();
     let data = {};
-    try { data = JSON.parse(text); } catch {}
-
+    try { data = JSON.parse(text); } catch(e) {}
     if (res.ok && data.token) {
       authToken = data.token;
       localStorage.setItem('ht_token', authToken);
@@ -318,9 +309,7 @@ async function doRegister() {
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
   hideMsg('registerMsg');
-
   if (!validateRegister(email, username, password)) return;
-
   setLoading('registerBtn', true, 'Registrarse');
   try {
     const res = await fetch(API + '/auth/register', {
@@ -330,8 +319,7 @@ async function doRegister() {
     });
     const text = await res.text();
     let data = {};
-    try { data = JSON.parse(text); } catch {}
-
+    try { data = JSON.parse(text); } catch(e) {}
     if (res.ok) {
       showMsg('registerMsg', '¡Cuenta creada! Ahora inicia sesión.', 'success');
       setTimeout(() => {
@@ -373,7 +361,6 @@ document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.ke
 document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('regPassword').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
 
-
 const YEAR=2026,MONTHS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],DAYS=['L','M','X','J','V','S','D'],COLORS=['#4A90E2','#7B68EE','#50C878','#FF7043','#FFB300','#26C6DA','#EC407A','#66BB6A','#AB47BC','#EF5350'],SK='ht2026v3';
 let state={habits:[]},selColor=COLORS[0],curTab='hoy';
 function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
@@ -381,11 +368,11 @@ function dim(y,m){return new Date(y,m+1,0).getDate()}
 function dowf(y,m,d){let r=new Date(y,m,d).getDay();return r===0?6:r-1}
 const T0=new Date(),TODAY=dk(T0.getFullYear(),T0.getMonth(),T0.getDate());
 document.getElementById('tc').textContent=`${DAYS[dowf(T0.getFullYear(),T0.getMonth(),T0.getDate())]} ${T0.getDate()} ${MONTHS[T0.getMonth()]}`;
-function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch{}}
-function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch{}}
-function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');render();}
+function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch(e){}}
+function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch(e){}}
+function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');optimizedRender();}
 function renderCp(){document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');}
-function pickColor(c){selColor=c;renderCp();}
+function pickColor(c){selColor=c;renderCp();optimizedRender();}
 
 function renderHoy(){
   if(!state.habits.length)return`<div class="empty-state">Agrega tu primera actividad arriba ↑</div>`;
@@ -469,51 +456,63 @@ function renderYear(){
 function render(){
   renderCp();
   const mc=document.getElementById('mc');
-  if(curTab==='hoy')mc.innerHTML=renderHoy();
-  else if(curTab==='semana')mc.innerHTML=renderSemana();
+  if(curTab==='hoy') mc.innerHTML=renderHoy();
+  else if(curTab==='semana') mc.innerHTML=renderSemana();
   else mc.innerHTML=renderYear();
+  if(curTab==='año'){setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(el=>{el.style.cursor='grab';});},50);}
 }
-
-function addDragScroll(el){
-  let down=false,startX,scrollLeft;
-  el.addEventListener('mousedown',e=>{down=true;startX=e.pageX-el.offsetLeft;scrollLeft=el.scrollLeft;el.style.cursor='grabbing';e.preventDefault();});
-  el.addEventListener('mouseleave',()=>{down=false;el.style.cursor='grab';});
-  el.addEventListener('mouseup',()=>{down=false;el.style.cursor='grab';});
-  el.addEventListener('mousemove',e=>{if(!down)return;const x=e.pageX-el.offsetLeft;el.scrollLeft=scrollLeft-(x-startX);});
-  el.style.cursor='grab';
-}
-
-const _origRender=render;
-render=function(){
-  _origRender();
-  if(curTab==='año'){setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(addDragScroll);},50);}
-};
 
 load();
 
 window.addHabit = async function() {
+  const btn = document.getElementById('addBtn');
   const name = document.getElementById('nn').value.trim();
   if (!name) return;
-  const newHabit = await createHabitAPI(name, selColor);
-  if (newHabit) {
-    await loadHabitsFromAPI();
-    document.getElementById('nn').value = '';
-    selColor = COLORS[state.habits.length % COLORS.length];
-    renderCp();
-    render();
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-dots">Agregando</span>';
+  try {
+    const newHabit = await createHabitAPI(name, selColor);
+    if (newHabit) {
+      await loadHabitsFromAPI();
+      document.getElementById('nn').value = '';
+      selColor = COLORS[state.habits.length % COLORS.length];
+      renderCp();
+    } else {
+      alert('Error al crear hábito');
+    }
+  } catch(e) {
+    alert('Error de conexión');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '+ Agregar';
   }
 };
 
 window.toggleDay = async function(hid, key) {
   const completed = await toggleDayAPI(hid, key);
-  if (completed !== null) { await loadHabitsFromAPI(); render(); }
+  if (completed !== null) {
+    const habit = state.habits.find(h => h.id === hid);
+    if (habit) {
+      if (completed) habit.days[key] = true;
+      else delete habit.days[key];
+      save();
+    }
+    const mc = document.getElementById('mc');
+    if (curTab === 'hoy') mc.innerHTML = renderHoy();
+    else if (curTab === 'semana') mc.innerHTML = renderSemana();
+    else {
+      const yearHtml = renderYear();
+      mc.innerHTML = yearHtml;
+      setTimeout(() => { document.querySelectorAll('.ygrid-wrap').forEach(el => { el.style.cursor = 'grab'; }); }, 50);
+    }
+  }
 };
 
 window.delHabit = async function(e, id) {
   e.stopPropagation();
   if (!confirm('¿Eliminar esta actividad?')) return;
   const success = await deleteHabitAPI(id);
-  if (success) { await loadHabitsFromAPI(); render(); }
+  if (success) { await loadHabitsFromAPI(); }
 };
 
 if (authToken) {
