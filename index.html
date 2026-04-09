@@ -118,7 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h2>Crear cuenta</h2>
     <div id="registerMsg" class="auth-msg"></div>
     <div class="field-wrap">
-      <input type="email" id="regEmail" class="auth-input" placeholder="Email">
+      <input type="email" id="regEmail" class="auth-input" placeholder="ejemplo@correo.com">
       <div class="field-error" id="errEmail">Ingresa un email válido</div>
     </div>
     <div class="field-wrap">
@@ -170,12 +170,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const API = 'https://habit-backend.fly.dev/api';
 let authToken = localStorage.getItem('ht_token');
-let renderTimeout = null;
-
-function optimizedRender() {
-  if (renderTimeout) clearTimeout(renderTimeout);
-  renderTimeout = setTimeout(() => { render(); renderTimeout = null; }, 30);
-}
+let pendingActions = new Set();
 
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
@@ -189,6 +184,7 @@ function hideMsg(id) {
 }
 function setLoading(btnId, loading, defaultText) {
   const btn = document.getElementById(btnId);
+  if (!btn) return;
   btn.disabled = loading;
   btn.innerHTML = loading ? '<span class="loading-dots">Cargando</span>' : defaultText;
 }
@@ -247,16 +243,23 @@ async function loadHabitsFromAPI() {
     days: Object.fromEntries((h.completedDates || []).map(d => [d, true]))
   }));
   save();
-  optimizedRender();
+  render();
 }
 
 async function toggleDayAPI(habitId, dateKey) {
-  const res = await apiFetch(`/habits/${habitId}/toggle`, {
-    method: 'POST',
-    body: JSON.stringify({ date: dateKey })
-  });
-  if (res && res.ok) return (await res.json()).completed;
-  return null;
+  const actionKey = `${habitId}_${dateKey}`;
+  if (pendingActions.has(actionKey)) return null;
+  pendingActions.add(actionKey);
+  try {
+    const res = await apiFetch(`/habits/${habitId}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ date: dateKey })
+    });
+    if (res && res.ok) return (await res.json()).completed;
+    return null;
+  } finally {
+    pendingActions.delete(actionKey);
+  }
 }
 
 async function createHabitAPI(name, color) {
@@ -268,8 +271,15 @@ async function createHabitAPI(name, color) {
 }
 
 async function deleteHabitAPI(habitId) {
-  const res = await apiFetch(`/habits/${habitId}`, { method: 'DELETE' });
-  return res && res.ok;
+  const actionKey = `delete_${habitId}`;
+  if (pendingActions.has(actionKey)) return false;
+  pendingActions.add(actionKey);
+  try {
+    const res = await apiFetch(`/habits/${habitId}`, { method: 'DELETE' });
+    return res && res.ok;
+  } finally {
+    pendingActions.delete(actionKey);
+  }
 }
 
 async function doLogin() {
@@ -370,9 +380,9 @@ const T0=new Date(),TODAY=dk(T0.getFullYear(),T0.getMonth(),T0.getDate());
 document.getElementById('tc').textContent=`${DAYS[dowf(T0.getFullYear(),T0.getMonth(),T0.getDate())]} ${T0.getDate()} ${MONTHS[T0.getMonth()]}`;
 function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch(e){}}
 function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch(e){}}
-function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');optimizedRender();}
+function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');render();}
 function renderCp(){document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');}
-function pickColor(c){selColor=c;renderCp();optimizedRender();}
+function pickColor(c){selColor=c;renderCp();render();}
 
 function renderHoy(){
   if(!state.habits.length)return`<div class="empty-state">Agrega tu primera actividad arriba ↑</div>`;
@@ -380,7 +390,7 @@ function renderHoy(){
   let html=`<div class="today-view"><div class="today-summary"><div class="summary-chip"><strong>${done}/${total}</strong>completadas hoy</div><div class="summary-chip"><strong>${pct}%</strong>del día</div></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
   state.habits.forEach(h=>{
     const isDone=!!h.days[TODAY];
-    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')"><div class="check-box">${isDone?'✓':''}</div><div class="hdot" style="background:${h.color}"></div><span class="hname">${h.name}</span><span class="hdel" onclick="delHabit(event,'${h.id}')">×</span></div>`;
+    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')"><div class="check-box">${isDone?'✓':''}</div><div class="hdot" style="background:${h.color}"></div><span class="hname">${h.name}</span><div class="hdel" onclick="event.stopPropagation();delHabit(event,'${h.id}')">×</div></div>`;
   });
   return html+'</div>';
 }
@@ -461,7 +471,6 @@ function render(){
   else mc.innerHTML=renderYear();
   if(curTab==='año'){setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(el=>{el.style.cursor='grab';});},50);}
 }
-
 load();
 
 window.addHabit = async function() {
@@ -511,8 +520,19 @@ window.toggleDay = async function(hid, key) {
 window.delHabit = async function(e, id) {
   e.stopPropagation();
   if (!confirm('¿Eliminar esta actividad?')) return;
-  const success = await deleteHabitAPI(id);
-  if (success) { await loadHabitsFromAPI(); }
+  const delBtn = e.target;
+  const originalText = delBtn.textContent;
+  delBtn.textContent = '...';
+  delBtn.style.opacity = '0.7';
+  delBtn.style.cursor = 'wait';
+  try {
+    const success = await deleteHabitAPI(id);
+    if (success) { await loadHabitsFromAPI(); }
+  } finally {
+    delBtn.textContent = originalText;
+    delBtn.style.opacity = '';
+    delBtn.style.cursor = '';
+  }
 };
 
 if (authToken) {
