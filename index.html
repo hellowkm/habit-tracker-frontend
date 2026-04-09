@@ -71,39 +71,82 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ycell.tring{box-shadow:0 0 0 1.5px rgba(255,255,255,.5);border-radius:3px}
 .empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:14px}
 #tip{position:fixed;background:#111;border:0.5px solid var(--border2);color:var(--text);padding:5px 9px;border-radius:6px;font-size:11px;pointer-events:none;z-index:999;white-space:nowrap;display:none}
+
+/* AUTH STYLES */
+.auth-panel{display:none;text-align:center;margin-top:80px}
+.auth-box{background:#1a1a1a;border-radius:16px;padding:2rem;max-width:320px;margin:0 auto;border:0.5px solid rgba(255,255,255,0.09)}
+.auth-box h2{margin-bottom:1.5rem;font-weight:600;letter-spacing:-0.3px}
+.auth-input{width:100%;padding:10px 12px;background:#0f0f0f;border:0.5px solid rgba(255,255,255,0.18);border-radius:8px;color:#e8e8e8;outline:none;font-size:14px;font-family:inherit}
+.auth-input.error{border-color:#e24b4a}
+.auth-input:focus{border-color:rgba(255,255,255,.35)}
+.field-wrap{margin-bottom:12px;text-align:left}
+.field-hint{font-size:11px;color:var(--text2);margin-top:4px;padding-left:2px}
+.field-error{font-size:11px;color:#e24b4a;margin-top:4px;padding-left:2px;display:none}
+.auth-btn{width:100%;padding:10px;border-radius:8px;color:#e8e8e8;cursor:pointer;font-size:14px;font-family:inherit;transition:all .15s;margin-bottom:10px}
+.auth-btn-primary{background:#2a2a2a;border:0.5px solid rgba(255,255,255,0.18)}
+.auth-btn-primary:hover:not(:disabled){background:#333}
+.auth-btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.auth-btn-secondary{background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:#888}
+.auth-btn-secondary:hover{background:#1f1f1f;color:#e8e8e8}
+.auth-msg{font-size:12px;margin-bottom:12px;padding:8px 12px;border-radius:6px;display:none}
+.auth-msg.error{background:rgba(226,75,74,0.12);border:0.5px solid rgba(226,75,74,0.3);color:#e24b4a}
+.auth-msg.success{background:rgba(80,200,120,0.12);border:0.5px solid rgba(80,200,120,0.3);color:#50C878}
+.loading-dots::after{content:'';animation:dots 1.2s infinite}
+@keyframes dots{0%{content:'.'}40%{content:'..'}80%{content:'...'}}
 </style>
 </head>
 <body>
 
-<!-- PANEL DE LOGIN ELEGANTE -->
-<div id="authPanel" style="display: block; text-align: center; margin-top: 80px;">
-  <div style="background: #1a1a1a; border-radius: 16px; padding: 2rem; max-width: 320px; margin: 0 auto; border: 0.5px solid rgba(255,255,255,0.09);">
-    <h2 style="margin-bottom: 1.5rem; font-weight: 600; letter-spacing: -0.3px;">Habit Tracker</h2>
-    <input type="email" id="loginEmail" placeholder="Email" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
-    <input type="password" id="loginPassword" placeholder="Contraseña" style="width: 100%; padding: 10px 12px; margin-bottom: 20px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
-    <button onclick="doLogin()" style="width: 100%; padding: 10px; background: #2a2a2a; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; cursor: pointer; margin-bottom: 12px;">Iniciar sesión</button>
-    <button onclick="showRegister()" style="width: 100%; padding: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #888; cursor: pointer;">Registrarse</button>
+<!-- LOGIN -->
+<div id="authPanel" class="auth-panel" style="display:block">
+  <div class="auth-box">
+    <h2>Habit Tracker</h2>
+    <div id="loginMsg" class="auth-msg"></div>
+    <div class="field-wrap">
+      <input type="email" id="loginEmail" class="auth-input" placeholder="Email">
+    </div>
+    <div class="field-wrap" style="margin-bottom:20px">
+      <input type="password" id="loginPassword" class="auth-input" placeholder="Contraseña">
+    </div>
+    <button id="loginBtn" class="auth-btn auth-btn-primary" onclick="doLogin()">Iniciar sesión</button>
+    <button class="auth-btn auth-btn-secondary" onclick="showRegister()">Crear cuenta</button>
   </div>
 </div>
 
-<!-- PANEL DE REGISTRO ELEGANTE -->
-<div id="registerPanel" style="display: none; text-align: center; margin-top: 80px;">
-  <div style="background: #1a1a1a; border-radius: 16px; padding: 2rem; max-width: 320px; margin: 0 auto; border: 0.5px solid rgba(255,255,255,0.09);">
-    <h2 style="margin-bottom: 1.5rem; font-weight: 600; letter-spacing: -0.3px;">Crear cuenta</h2>
-    <input type="email" id="regEmail" placeholder="Email" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
-    <input type="text" id="regUsername" placeholder="Usuario" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
-    <input type="password" id="regPassword" placeholder="Contraseña" style="width: 100%; padding: 10px 12px; margin-bottom: 20px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
-    <button onclick="doRegister()" style="width: 100%; padding: 10px; background: #2a2a2a; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; cursor: pointer; margin-bottom: 12px;">Registrar</button>
-    <button onclick="showLogin()" style="width: 100%; padding: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #888; cursor: pointer;">Volver</button>
+<!-- REGISTRO -->
+<div id="registerPanel" class="auth-panel">
+  <div class="auth-box">
+    <h2>Crear cuenta</h2>
+    <div id="registerMsg" class="auth-msg"></div>
+
+    <div class="field-wrap">
+      <input type="email" id="regEmail" class="auth-input" placeholder="Email">
+      <div class="field-error" id="errEmail">Ingresa un email válido</div>
+    </div>
+
+    <div class="field-wrap">
+      <input type="text" id="regUsername" class="auth-input" placeholder="Usuario">
+      <div class="field-hint">Mínimo 2 caracteres</div>
+      <div class="field-error" id="errUsername">El usuario debe tener al menos 2 caracteres</div>
+    </div>
+
+    <div class="field-wrap" style="margin-bottom:20px">
+      <input type="password" id="regPassword" class="auth-input" placeholder="Contraseña">
+      <div class="field-hint">Mínimo 6 caracteres</div>
+      <div class="field-error" id="errPassword">La contraseña debe tener al menos 6 caracteres</div>
+    </div>
+
+    <button id="registerBtn" class="auth-btn auth-btn-primary" onclick="doRegister()">Registrarse</button>
+    <button class="auth-btn auth-btn-secondary" onclick="showLogin()">Volver</button>
   </div>
 </div>
 
-<!-- PANEL PRINCIPAL DEL TRACKER -->
-<div id="appPanel" style="display:none;">
+<!-- APP -->
+<div id="appPanel" style="display:none">
   <div class="app">
     <div class="hdr">
       <h1>Habit Tracker <span>2026</span></h1>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display:flex;align-items:center;gap:8px">
         <span class="today-chip" id="tc"></span>
         <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
       </div>
@@ -125,12 +168,65 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="tip"></div>
 
 <script>
-// ============================================
-// CONEXIÓN CON EL BACKEND
-// ============================================
-
 const API = 'https://habit-backend.fly.dev/api';
 let authToken = localStorage.getItem('ht_token');
+
+// ── Helpers UI ────────────────────────────────────────────────
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'auth-msg ' + type;
+  el.style.display = 'block';
+}
+function hideMsg(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'none';
+}
+function showFieldError(id, show) {
+  document.getElementById(id).style.display = show ? 'block' : 'none';
+  const input = document.getElementById(id.replace('err','reg').replace('Email','Email').replace('Username','Username').replace('Password','Password'));
+  if(input) input.classList.toggle('error', show);
+}
+function setLoading(btnId, loading, defaultText) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.innerHTML = loading ? '<span class="loading-dots">Cargando</span>' : defaultText;
+}
+
+// ── Validación registro ───────────────────────────────────────
+
+function validateRegister(email, username, password) {
+  let valid = true;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    document.getElementById('regEmail').classList.add('error');
+    document.getElementById('errEmail').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('regEmail').classList.remove('error');
+    document.getElementById('errEmail').style.display = 'none';
+  }
+  if (username.length < 2) {
+    document.getElementById('regUsername').classList.add('error');
+    document.getElementById('errUsername').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('regUsername').classList.remove('error');
+    document.getElementById('errUsername').style.display = 'none';
+  }
+  if (password.length < 6) {
+    document.getElementById('regPassword').classList.add('error');
+    document.getElementById('errPassword').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('regPassword').classList.remove('error');
+    document.getElementById('errPassword').style.display = 'none';
+  }
+  return valid;
+}
+
+// ── API ───────────────────────────────────────────────────────
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(API + path, {
@@ -141,55 +237,8 @@ async function apiFetch(path, options = {}) {
       ...options.headers
     }
   });
-  if (res.status === 401) { logout(); return; }
+  if (res.status === 401) { logout(); return null; }
   return res;
-}
-
-async function login(email, password) {
-  const res = await apiFetch('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password })
-  });
-  const data = await res.json();
-  if (res.ok && data.token) {
-    authToken = data.token;
-    localStorage.setItem('ht_token', authToken);
-    return true;
-  } else {
-    alert('Error en login: ' + (data.error || data.message));
-    return false;
-  }
-}
-
-async function register(email, username, password) {
-  try {
-    const res = await fetch(API + '/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, username, password })
-    });
-    
-    // Intentar leer la respuesta como JSON
-    let data = {};
-    try {
-      data = await res.json();
-    } catch (e) {
-      console.error('Error al parsear JSON:', e);
-    }
-    
-    if (res.ok) {
-      alert('Registro exitoso. Ahora inicia sesión.');
-      return true;
-    } else {
-      const errorMsg = data.error || data.message || `Error ${res.status}: No se pudo registrar`;
-      alert('Error en registro: ' + errorMsg);
-      return false;
-    }
-  } catch (error) {
-    console.error('Error de red:', error);
-    alert('Error de conexión con el servidor. Asegúrate de que el backend esté corriendo.');
-    return false;
-  }
 }
 
 async function loadHabitsFromAPI() {
@@ -211,10 +260,7 @@ async function toggleDayAPI(habitId, dateKey) {
     method: 'POST',
     body: JSON.stringify({ date: dateKey })
   });
-  if (res && res.ok) {
-    const result = await res.json();
-    return result.completed;
-  }
+  if (res && res.ok) return (await res.json()).completed;
   return null;
 }
 
@@ -223,45 +269,89 @@ async function createHabitAPI(name, color) {
     method: 'POST',
     body: JSON.stringify({ name, color })
   });
-  if (res && res.ok) {
-    return await res.json();
-  }
-  return null;
+  return res && res.ok ? await res.json() : null;
 }
 
 async function deleteHabitAPI(habitId) {
-  const res = await apiFetch(`/habits/${habitId}`, {
-    method: 'DELETE'
-  });
+  const res = await apiFetch(`/habits/${habitId}`, { method: 'DELETE' });
   return res && res.ok;
 }
 
-function logout() {
-  localStorage.removeItem('ht_token');
-  authToken = null;
-  location.reload();
-}
+// ── Auth acciones ─────────────────────────────────────────────
 
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value;
+  const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
-  const success = await login(email, password);
-  if (success) {
-    document.getElementById('authPanel').style.display = 'none';
-    document.getElementById('registerPanel').style.display = 'none';
-    document.getElementById('appPanel').style.display = 'block';
-    await loadHabitsFromAPI();
+  hideMsg('loginMsg');
+
+  if (!email || !password) {
+    showMsg('loginMsg', 'Completa todos los campos', 'error');
+    return;
   }
+
+  setLoading('loginBtn', true, 'Iniciar sesión');
+  try {
+    const res = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    if (res.ok && data.token) {
+      authToken = data.token;
+      localStorage.setItem('ht_token', authToken);
+      showApp();
+      await loadHabitsFromAPI();
+    } else {
+      showMsg('loginMsg', data.error || 'Email o contraseña incorrectos', 'error');
+    }
+  } catch(e) {
+    showMsg('loginMsg', 'Error de conexión con el servidor', 'error');
+  }
+  setLoading('loginBtn', false, 'Iniciar sesión');
 }
 
 async function doRegister() {
-  const email = document.getElementById('regEmail').value;
-  const username = document.getElementById('regUsername').value;
+  const email = document.getElementById('regEmail').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
-  const success = await register(email, username, password);
-  if (success) {
-    showLogin();
+  hideMsg('registerMsg');
+
+  if (!validateRegister(email, username, password)) return;
+
+  setLoading('registerBtn', true, 'Registrarse');
+  try {
+    const res = await fetch(API + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, username, password })
+    });
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    if (res.ok) {
+      showMsg('registerMsg', '¡Cuenta creada! Ahora inicia sesión.', 'success');
+      setTimeout(() => {
+        showLogin();
+        document.getElementById('loginEmail').value = email;
+      }, 1500);
+    } else {
+      showMsg('registerMsg', data.error || 'No se pudo registrar. Intenta con otro email.', 'error');
+    }
+  } catch(e) {
+    showMsg('registerMsg', 'Error de conexión con el servidor', 'error');
   }
+  setLoading('registerBtn', false, 'Registrarse');
+}
+
+function showApp() {
+  document.getElementById('authPanel').style.display = 'none';
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('appPanel').style.display = 'block';
 }
 
 function showLogin() {
@@ -274,9 +364,18 @@ function showRegister() {
   document.getElementById('registerPanel').style.display = 'block';
 }
 
-// ============================================
-// CÓDIGO DEL TRACKER
-// ============================================
+function logout() {
+  localStorage.removeItem('ht_token');
+  authToken = null;
+  location.reload();
+}
+
+// Enter en inputs de login
+document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('regPassword').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+
+// ── Tracker ───────────────────────────────────────────────────
 
 const YEAR=2026,MONTHS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],DAYS=['L','M','X','J','V','S','D'],COLORS=['#4A90E2','#7B68EE','#50C878','#FF7043','#FFB300','#26C6DA','#EC407A','#66BB6A','#AB47BC','#EF5350'],SK='ht2026v3';
 let state={habits:[]},selColor=COLORS[0],curTab='hoy';
@@ -287,28 +386,17 @@ const T0=new Date(),TODAY=dk(T0.getFullYear(),T0.getMonth(),T0.getDate());
 document.getElementById('tc').textContent=`${DAYS[dowf(T0.getFullYear(),T0.getMonth(),T0.getDate())]} ${T0.getDate()} ${MONTHS[T0.getMonth()]}`;
 function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch{}}
 function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch{}}
-
 function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');render();}
-function renderCp(){
-  document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
-}
+function renderCp(){document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');}
 function pickColor(c){selColor=c;renderCp();}
 
 function renderHoy(){
   if(!state.habits.length)return`<div class="empty-state">Agrega tu primera actividad arriba ↑</div>`;
   const done=state.habits.filter(h=>h.days[TODAY]).length,total=state.habits.length,pct=Math.round(done/total*100);
-  let html=`<div class="today-view"><div class="today-summary">
-    <div class="summary-chip"><strong>${done}/${total}</strong>completadas hoy</div>
-    <div class="summary-chip"><strong>${pct}%</strong>del día</div>
-  </div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+  let html=`<div class="today-view"><div class="today-summary"><div class="summary-chip"><strong>${done}/${total}</strong>completadas hoy</div><div class="summary-chip"><strong>${pct}%</strong>del día</div></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
   state.habits.forEach(h=>{
     const isDone=!!h.days[TODAY];
-    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')">
-      <div class="check-box">${isDone?'✓':''}</div>
-      <div class="hdot" style="background:${h.color}"></div>
-      <span class="hname">${h.name}</span>
-      <span class="hdel" onclick="delHabit(event,'${h.id}')">×</span>
-    </div>`;
+    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')"><div class="check-box">${isDone?'✓':''}</div><div class="hdot" style="background:${h.color}"></div><span class="hname">${h.name}</span><span class="hdel" onclick="delHabit(event,'${h.id}')">×</span></div>`;
   });
   return html+'</div>';
 }
@@ -319,13 +407,13 @@ function renderSemana(){
   const week=Array.from({length:7},(_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return{date:d,key:dk(d.getFullYear(),d.getMonth(),d.getDate()),i};});
   let html=`<div class="week-wrap"><table class="week-table"><thead><tr><th style="text-align:left">Actividad</th>`;
   week.forEach(({date,key,i})=>{const isT=key===TODAY;html+=`<th class="${isT?'tc':''}">${DAYS[i]}<br><span style="font-size:11px">${date.getDate()}</span></th>`;});
-  html+=`</td></thead><tbody>`;
+  html+=`</tr></thead><tbody>`;
   state.habits.forEach(h=>{
     html+=`<tr><td class="act-label"><div class="act-label-inner"><div style="width:8px;height:8px;border-radius:50%;background:${h.color};flex-shrink:0"></div>${h.name}</div></td>`;
     week.forEach(({key,date})=>{const done=!!h.days[key],future=date>T0;html+=`<td style="text-align:center;padding:2px"><div class="dchk${done?' done':''}${future?' future':''}" style="--hc:${h.color}" onclick="${!future?`toggleDay('${h.id}','${key}')`:''}">${done?'✓':''}</div></td>`;});
     html+=`</tr>`;
   });
-  return html+`</tbody><table></div>`;
+  return html+`</tbody></table></div>`;
 }
 
 function buildMG(m){
@@ -388,6 +476,7 @@ function render(){
   else if(curTab==='semana')mc.innerHTML=renderSemana();
   else mc.innerHTML=renderYear();
 }
+
 function addDragScroll(el){
   let down=false,startX,scrollLeft;
   el.addEventListener('mousedown',e=>{down=true;startX=e.pageX-el.offsetLeft;scrollLeft=el.scrollLeft;el.style.cursor='grabbing';e.preventDefault();});
@@ -396,18 +485,14 @@ function addDragScroll(el){
   el.addEventListener('mousemove',e=>{if(!down)return;const x=e.pageX-el.offsetLeft;el.scrollLeft=scrollLeft-(x-startX);});
   el.style.cursor='grab';
 }
+
 const _origRender=render;
 render=function(){
   _origRender();
-  if(curTab==='año'){
-    setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(addDragScroll);},50);
-  }
+  if(curTab==='año'){setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(addDragScroll);},50);}
 };
-load();
 
-// ============================================
-// REEMPLAZO DE FUNCIONES DEL TRACKER
-// ============================================
+load();
 
 window.addHabit = async function() {
   const name = document.getElementById('nn').value.trim();
@@ -419,44 +504,28 @@ window.addHabit = async function() {
     selColor = COLORS[state.habits.length % COLORS.length];
     renderCp();
     render();
-  } else {
-    alert('Error al crear hábito');
   }
 };
 
 window.toggleDay = async function(hid, key) {
   const completed = await toggleDayAPI(hid, key);
-  if (completed !== null) {
-    await loadHabitsFromAPI();
-    render();
-  }
+  if (completed !== null) { await loadHabitsFromAPI(); render(); }
 };
 
 window.delHabit = async function(e, id) {
   e.stopPropagation();
   if (!confirm('¿Eliminar esta actividad?')) return;
   const success = await deleteHabitAPI(id);
-  if (success) {
-    await loadHabitsFromAPI();
-    render();
-  }
+  if (success) { await loadHabitsFromAPI(); render(); }
 };
 
-// ============================================
-// INICIALIZACIÓN
-// ============================================
-
+// Init
 if (authToken) {
-  document.getElementById('authPanel').style.display = 'none';
-  document.getElementById('registerPanel').style.display = 'none';
-  document.getElementById('appPanel').style.display = 'block';
+  showApp();
   loadHabitsFromAPI();
 } else {
   document.getElementById('authPanel').style.display = 'block';
-  document.getElementById('registerPanel').style.display = 'none';
-  document.getElementById('appPanel').style.display = 'none';
 }
-
 render();
 </script>
 </body>
