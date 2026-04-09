@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker 2026</title>
+<style>
+:root{--bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#272727;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.18);--text:#e8e8e8;--text2:#888;--text3:#444;--r:8px;--rl:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:900px;margin:0 auto;padding:1.5rem 1rem}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.hdr h1 span{color:var(--text2);font-weight:400}
+.today-chip{font-size:12px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:4px 12px;color:var(--text2)}
+.logout-btn{background:transparent;border:0.5px solid var(--border2);border-radius:20px;color:var(--text2);padding:4px 12px;cursor:pointer;font-size:12px;transition:all .15s}
+.logout-btn:hover{background:var(--bg3);color:var(--text)}
+.tabs{display:flex;gap:4px;margin-bottom:1.25rem}
+.tab{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.tab.active{background:var(--bg2);border-color:var(--border2);color:var(--text)}
+.add-row{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.add-row input{flex:1;min-width:140px;font-size:13px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);outline:none}
+.add-row input:focus{border-color:rgba(255,255,255,.3)}
+.add-row input::placeholder{color:var(--text3)}
+.colors{display:flex;gap:5px;align-items:center}
+.cb{width:18px;height:18px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .1s;flex-shrink:0}
+.cb.sel{border-color:#fff;transform:scale(1.2)}
+.add-btn{font-size:12px;padding:8px 14px;border-radius:var(--r);border:0.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;transition:background .1s}
+.add-btn:hover{background:var(--bg3)}
+.today-view{display:flex;flex-direction:column;gap:8px}
+.today-summary{display:flex;gap:8px;margin-bottom:4px}
+.summary-chip{flex:1;text-align:center;padding:10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text2)}
+.summary-chip strong{display:block;font-size:20px;font-weight:600;color:var(--text);margin-bottom:2px}
+.progress-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.progress-fill{height:100%;border-radius:2px;transition:width .4s;background:#4A90E2}
+.habit-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);cursor:pointer;user-select:none;transition:border-color .15s}
+.habit-row:hover{border-color:var(--border2)}
+.habit-row.done{border-color:var(--hc)}
+.check-box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.habit-row.done .check-box{border-color:var(--hc);background:var(--hc)}
+.hdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hname{font-size:14px;font-weight:500;flex:1}
+.hdel{font-size:18px;color:var(--text3);cursor:pointer;padding:0 4px;opacity:0;transition:opacity .1s}
+.habit-row:hover .hdel{opacity:1}
+.hdel:hover{color:#e24b4a}
+.week-wrap{overflow-x:auto}
+.week-table{border-collapse:separate;border-spacing:3px;min-width:500px}
+.week-table th{font-size:10px;color:var(--text2);text-align:center;padding:4px 6px;font-weight:500;white-space:nowrap}
+.week-table th.tc{color:var(--text);font-weight:600}
+.act-label{font-size:12px;white-space:nowrap;padding:3px 8px 3px 2px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.act-label-inner{display:flex;align-items:center;gap:5px}
+.dchk{width:30px;height:30px;border-radius:6px;border:1.5px solid rgba(255,255,255,.12);margin:0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .12s;background:transparent}
+.dchk:hover{border-color:rgba(255,255,255,.3)}
+.dchk.done{border-color:var(--hc);background:var(--hc)}
+.dchk.future{opacity:.2;cursor:not-allowed}
+.year-section{margin-bottom:1.5rem}
+.ylabel{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ylabel span{font-size:13px;font-weight:500}
+.ypct{font-size:11px;color:var(--text2)}
+.ygrid-wrap{overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none}.ygrid-wrap::-webkit-scrollbar{display:none}
+.month-row{display:flex;gap:10px;min-width:max-content}
+.mblock{}
+.mlbl{font-size:9px;color:var(--text2);margin-bottom:3px;letter-spacing:.05em;text-transform:uppercase}
+.mcells{display:flex;gap:2px}
+.wcol{display:flex;flex-direction:column;gap:2px}
+.ycell{width:11px;height:11px;border-radius:2px;cursor:pointer;flex-shrink:0;transition:opacity .1s}
+.ycell:hover{opacity:.7}
+.ycell.emp{cursor:default;background:transparent!important}
+.ycell.fut{opacity:.2;cursor:not-allowed}
+.ycell.tring{box-shadow:0 0 0 1.5px rgba(255,255,255,.5);border-radius:3px}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:14px}
+#tip{position:fixed;background:#111;border:0.5px solid var(--border2);color:var(--text);padding:5px 9px;border-radius:6px;font-size:11px;pointer-events:none;z-index:999;white-space:nowrap;display:none}
+</style>
+</head>
+<body>
+
+<!-- PANEL DE LOGIN ELEGANTE -->
+<div id="authPanel" style="display: block; text-align: center; margin-top: 80px;">
+  <div style="background: #1a1a1a; border-radius: 16px; padding: 2rem; max-width: 320px; margin: 0 auto; border: 0.5px solid rgba(255,255,255,0.09);">
+    <h2 style="margin-bottom: 1.5rem; font-weight: 600; letter-spacing: -0.3px;">Habit Tracker</h2>
+    <input type="email" id="loginEmail" placeholder="Email" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
+    <input type="password" id="loginPassword" placeholder="Contraseña" style="width: 100%; padding: 10px 12px; margin-bottom: 20px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
+    <button onclick="doLogin()" style="width: 100%; padding: 10px; background: #2a2a2a; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; cursor: pointer; margin-bottom: 12px;">Iniciar sesión</button>
+    <button onclick="showRegister()" style="width: 100%; padding: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #888; cursor: pointer;">Registrarse</button>
+  </div>
+</div>
+
+<!-- PANEL DE REGISTRO ELEGANTE -->
+<div id="registerPanel" style="display: none; text-align: center; margin-top: 80px;">
+  <div style="background: #1a1a1a; border-radius: 16px; padding: 2rem; max-width: 320px; margin: 0 auto; border: 0.5px solid rgba(255,255,255,0.09);">
+    <h2 style="margin-bottom: 1.5rem; font-weight: 600; letter-spacing: -0.3px;">Crear cuenta</h2>
+    <input type="email" id="regEmail" placeholder="Email" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
+    <input type="text" id="regUsername" placeholder="Usuario" style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
+    <input type="password" id="regPassword" placeholder="Contraseña" style="width: 100%; padding: 10px 12px; margin-bottom: 20px; background: #0f0f0f; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; outline: none;">
+    <button onclick="doRegister()" style="width: 100%; padding: 10px; background: #2a2a2a; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #e8e8e8; cursor: pointer; margin-bottom: 12px;">Registrar</button>
+    <button onclick="showLogin()" style="width: 100%; padding: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,0.18); border-radius: 8px; color: #888; cursor: pointer;">Volver</button>
+  </div>
+</div>
+
+<!-- PANEL PRINCIPAL DEL TRACKER -->
+<div id="appPanel" style="display:none;">
+  <div class="app">
+    <div class="hdr">
+      <h1>Habit Tracker <span>2026</span></h1>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="today-chip" id="tc"></span>
+        <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="add-row">
+      <input type="text" id="nn" placeholder="Nueva actividad..." maxlength="40"/>
+      <div class="colors" id="cp"></div>
+      <button class="add-btn" onclick="addHabit()">+ Agregar</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="setTab('hoy',this)">Hoy</button>
+      <button class="tab" onclick="setTab('semana',this)">Semana</button>
+      <button class="tab" onclick="setTab('año',this)">Año</button>
+    </div>
+    <div id="mc"></div>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+// ============================================
+// CONEXIÓN CON EL BACKEND
+// ============================================
+
+const API = 'https://habit-backend.fly.dev/api';
+let authToken = localStorage.getItem('ht_token');
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(API + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {}),
+      ...options.headers
+    }
+  });
+  if (res.status === 401) { logout(); return; }
+  return res;
+}
+
+async function login(email, password) {
+  const res = await apiFetch('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (res.ok && data.token) {
+    authToken = data.token;
+    localStorage.setItem('ht_token', authToken);
+    return true;
+  } else {
+    alert('Error en login: ' + (data.error || data.message));
+    return false;
+  }
+}
+
+async function register(email, username, password) {
+  try {
+    const res = await fetch(API + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, username, password })
+    });
+    
+    // Intentar leer la respuesta como JSON
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (e) {
+      console.error('Error al parsear JSON:', e);
+    }
+    
+    if (res.ok) {
+      alert('Registro exitoso. Ahora inicia sesión.');
+      return true;
+    } else {
+      const errorMsg = data.error || data.message || `Error ${res.status}: No se pudo registrar`;
+      alert('Error en registro: ' + errorMsg);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error de red:', error);
+    alert('Error de conexión con el servidor. Asegúrate de que el backend esté corriendo.');
+    return false;
+  }
+}
+
+async function loadHabitsFromAPI() {
+  const res = await apiFetch('/habits');
+  if (!res) return;
+  const habitsFromAPI = await res.json();
+  state.habits = habitsFromAPI.map(h => ({
+    id: String(h.id),
+    name: h.name,
+    color: h.color || '#4A90E2',
+    days: Object.fromEntries((h.completedDates || []).map(d => [d, true]))
+  }));
+  save();
+  render();
+}
+
+async function toggleDayAPI(habitId, dateKey) {
+  const res = await apiFetch(`/habits/${habitId}/toggle`, {
+    method: 'POST',
+    body: JSON.stringify({ date: dateKey })
+  });
+  if (res && res.ok) {
+    const result = await res.json();
+    return result.completed;
+  }
+  return null;
+}
+
+async function createHabitAPI(name, color) {
+  const res = await apiFetch('/habits', {
+    method: 'POST',
+    body: JSON.stringify({ name, color })
+  });
+  if (res && res.ok) {
+    return await res.json();
+  }
+  return null;
+}
+
+async function deleteHabitAPI(habitId) {
+  const res = await apiFetch(`/habits/${habitId}`, {
+    method: 'DELETE'
+  });
+  return res && res.ok;
+}
+
+function logout() {
+  localStorage.removeItem('ht_token');
+  authToken = null;
+  location.reload();
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const success = await login(email, password);
+  if (success) {
+    document.getElementById('authPanel').style.display = 'none';
+    document.getElementById('registerPanel').style.display = 'none';
+    document.getElementById('appPanel').style.display = 'block';
+    await loadHabitsFromAPI();
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value;
+  const username = document.getElementById('regUsername').value;
+  const password = document.getElementById('regPassword').value;
+  const success = await register(email, username, password);
+  if (success) {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('authPanel').style.display = 'block';
+}
+
+function showRegister() {
+  document.getElementById('authPanel').style.display = 'none';
+  document.getElementById('registerPanel').style.display = 'block';
+}
+
+// ============================================
+// CÓDIGO DEL TRACKER
+// ============================================
+
+const YEAR=2026,MONTHS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],DAYS=['L','M','X','J','V','S','D'],COLORS=['#4A90E2','#7B68EE','#50C878','#FF7043','#FFB300','#26C6DA','#EC407A','#66BB6A','#AB47BC','#EF5350'],SK='ht2026v3';
+let state={habits:[]},selColor=COLORS[0],curTab='hoy';
+function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function dowf(y,m,d){let r=new Date(y,m,d).getDay();return r===0?6:r-1}
+const T0=new Date(),TODAY=dk(T0.getFullYear(),T0.getMonth(),T0.getDate());
+document.getElementById('tc').textContent=`${DAYS[dowf(T0.getFullYear(),T0.getMonth(),T0.getDate())]} ${T0.getDate()} ${MONTHS[T0.getMonth()]}`;
+function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch{}}
+function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch{}}
+
+function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');render();}
+function renderCp(){
+  document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+}
+function pickColor(c){selColor=c;renderCp();}
+
+function renderHoy(){
+  if(!state.habits.length)return`<div class="empty-state">Agrega tu primera actividad arriba ↑</div>`;
+  const done=state.habits.filter(h=>h.days[TODAY]).length,total=state.habits.length,pct=Math.round(done/total*100);
+  let html=`<div class="today-view"><div class="today-summary">
+    <div class="summary-chip"><strong>${done}/${total}</strong>completadas hoy</div>
+    <div class="summary-chip"><strong>${pct}%</strong>del día</div>
+  </div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+  state.habits.forEach(h=>{
+    const isDone=!!h.days[TODAY];
+    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')">
+      <div class="check-box">${isDone?'✓':''}</div>
+      <div class="hdot" style="background:${h.color}"></div>
+      <span class="hname">${h.name}</span>
+      <span class="hdel" onclick="delHabit(event,'${h.id}')">×</span>
+    </div>`;
+  });
+  return html+'</div>';
+}
+
+function renderSemana(){
+  if(!state.habits.length)return`<div class="empty-state">Agrega actividades arriba ↑</div>`;
+  const d0=new Date(T0);d0.setDate(T0.getDate()-dowf(T0.getFullYear(),T0.getMonth(),T0.getDate()));
+  const week=Array.from({length:7},(_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return{date:d,key:dk(d.getFullYear(),d.getMonth(),d.getDate()),i};});
+  let html=`<div class="week-wrap"><table class="week-table"><thead><tr><th style="text-align:left">Actividad</th>`;
+  week.forEach(({date,key,i})=>{const isT=key===TODAY;html+=`<th class="${isT?'tc':''}">${DAYS[i]}<br><span style="font-size:11px">${date.getDate()}</span></th>`;});
+  html+=`</td></thead><tbody>`;
+  state.habits.forEach(h=>{
+    html+=`<tr><td class="act-label"><div class="act-label-inner"><div style="width:8px;height:8px;border-radius:50%;background:${h.color};flex-shrink:0"></div>${h.name}</div></td>`;
+    week.forEach(({key,date})=>{const done=!!h.days[key],future=date>T0;html+=`<td style="text-align:center;padding:2px"><div class="dchk${done?' done':''}${future?' future':''}" style="--hc:${h.color}" onclick="${!future?`toggleDay('${h.id}','${key}')`:''}">${done?'✓':''}</div></td>`;});
+    html+=`</tr>`;
+  });
+  return html+`</tbody><table></div>`;
+}
+
+function buildMG(m){
+  const days=dim(YEAR,m),fd=dowf(YEAR,m,1);
+  const weeks=[];let wk=[];
+  for(let i=0;i<fd;i++)wk.push(null);
+  for(let d=1;d<=days;d++){wk.push({d,key:dk(YEAR,m,d)});if(wk.length===7){weeks.push(wk);wk=[];}}
+  if(wk.length>0){while(wk.length<7)wk.push(null);weeks.push(wk);}
+  return weeks;
+}
+
+function renderYear(){
+  if(!state.habits.length)return`<div class="empty-state">Agrega actividades arriba ↑</div>`;
+  const tip=document.getElementById('tip');
+  let html='';
+  state.habits.forEach(h=>{
+    let done=0,avail=0;
+    for(let m=0;m<12;m++)for(let d=1;d<=dim(YEAR,m);d++){const dt=new Date(YEAR,m,d);if(dt<=T0){avail++;if(h.days[dk(YEAR,m,d)])done++;}}
+    const pct=avail>0?Math.round(done/avail*100):0;
+    html+=`<div class="year-section"><div class="ylabel"><div style="width:10px;height:10px;border-radius:50%;background:${h.color};flex-shrink:0"></div><span>${h.name}</span><span class="ypct">${pct}% · ${done} días</span></div><div class="ygrid-wrap"><div class="month-row" id="yr-${h.id}"></div></div></div>`;
+  });
+  setTimeout(()=>{
+    state.habits.forEach(h=>{
+      const cont=document.getElementById(`yr-${h.id}`);if(!cont)return;
+      for(let m=0;m<12;m++){
+        const mb=document.createElement('div');mb.className='mblock';
+        const lbl=document.createElement('div');lbl.className='mlbl';lbl.textContent=MONTHS[m];mb.appendChild(lbl);
+        const cells=document.createElement('div');cells.className='mcells';
+        buildMG(m).forEach(wk=>{
+          const col=document.createElement('div');col.className='wcol';
+          wk.forEach(cell=>{
+            const el=document.createElement('div');
+            if(!cell){el.className='ycell emp';el.style.background='transparent';}
+            else{
+              const dt=new Date(YEAR,m,cell.d),future=dt>T0,done=!!h.days[cell.key],isT=cell.key===TODAY;
+              el.className='ycell'+(future?' fut':'')+(isT?' tring':'');
+              el.style.background=done?h.color:(future?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)');
+              if(!future){
+                el.onclick=()=>{toggleDay(h.id,cell.key);};
+                el.onmouseenter=e=>{tip.textContent=`${cell.d} ${MONTHS[m]} — ${h.days[cell.key]?'✓ Hecho':'Pendiente'}`;tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-28)+'px';};
+                el.onmouseleave=()=>{tip.style.display='none';};
+                el.onmousemove=e=>{tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-28)+'px';};
+              }
+            }
+            col.appendChild(el);
+          });
+          cells.appendChild(col);
+        });
+        mb.appendChild(cells);cont.appendChild(mb);
+      }
+    });
+  },0);
+  return html;
+}
+
+function render(){
+  renderCp();
+  const mc=document.getElementById('mc');
+  if(curTab==='hoy')mc.innerHTML=renderHoy();
+  else if(curTab==='semana')mc.innerHTML=renderSemana();
+  else mc.innerHTML=renderYear();
+}
+function addDragScroll(el){
+  let down=false,startX,scrollLeft;
+  el.addEventListener('mousedown',e=>{down=true;startX=e.pageX-el.offsetLeft;scrollLeft=el.scrollLeft;el.style.cursor='grabbing';e.preventDefault();});
+  el.addEventListener('mouseleave',()=>{down=false;el.style.cursor='grab';});
+  el.addEventListener('mouseup',()=>{down=false;el.style.cursor='grab';});
+  el.addEventListener('mousemove',e=>{if(!down)return;const x=e.pageX-el.offsetLeft;el.scrollLeft=scrollLeft-(x-startX);});
+  el.style.cursor='grab';
+}
+const _origRender=render;
+render=function(){
+  _origRender();
+  if(curTab==='año'){
+    setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(addDragScroll);},50);
+  }
+};
+load();
+
+// ============================================
+// REEMPLAZO DE FUNCIONES DEL TRACKER
+// ============================================
+
+window.addHabit = async function() {
+  const name = document.getElementById('nn').value.trim();
+  if (!name) return;
+  const newHabit = await createHabitAPI(name, selColor);
+  if (newHabit) {
+    await loadHabitsFromAPI();
+    document.getElementById('nn').value = '';
+    selColor = COLORS[state.habits.length % COLORS.length];
+    renderCp();
+    render();
+  } else {
+    alert('Error al crear hábito');
+  }
+};
+
+window.toggleDay = async function(hid, key) {
+  const completed = await toggleDayAPI(hid, key);
+  if (completed !== null) {
+    await loadHabitsFromAPI();
+    render();
+  }
+};
+
+window.delHabit = async function(e, id) {
+  e.stopPropagation();
+  if (!confirm('¿Eliminar esta actividad?')) return;
+  const success = await deleteHabitAPI(id);
+  if (success) {
+    await loadHabitsFromAPI();
+    render();
+  }
+};
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+
+if (authToken) {
+  document.getElementById('authPanel').style.display = 'none';
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('appPanel').style.display = 'block';
+  loadHabitsFromAPI();
+} else {
+  document.getElementById('authPanel').style.display = 'block';
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('appPanel').style.display = 'none';
+}
+
+render();
+</script>
+</body>
+</html>
