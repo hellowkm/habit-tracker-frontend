@@ -58,7 +58,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ylabel{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .ylabel span{font-size:13px;font-weight:500}
 .ypct{font-size:11px;color:var(--text2)}
-.ygrid-wrap{overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none}.ygrid-wrap::-webkit-scrollbar{display:none}
+.ygrid-wrap{overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none;cursor:grab}
+.ygrid-wrap::-webkit-scrollbar{display:none}
+.ygrid-wrap:active{cursor:grabbing}
 .month-row{display:flex;gap:10px;min-width:max-content}
 .mblock{}
 .mlbl{font-size:9px;color:var(--text2);margin-bottom:3px;letter-spacing:.05em;text-transform:uppercase}
@@ -91,6 +93,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .auth-msg.success{background:rgba(80,200,120,0.12);border:0.5px solid rgba(80,200,120,0.3);color:#50C878}
 .loading-dots::after{content:'';animation:dots 1.2s infinite}
 @keyframes dots{0%{content:'.'}40%{content:'..'}80%{content:'...'}}
+.by{text-align:center;padding:2rem 1rem 1rem;color:rgba(255,255,255,0.35);font-size:11px;letter-spacing:1px;font-weight:300}
 </style>
 </head>
 <body>
@@ -108,9 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button id="loginBtn" class="auth-btn auth-btn-primary" onclick="doLogin()">Iniciar sesión</button>
     <button class="auth-btn auth-btn-secondary" onclick="showRegister()">Crear cuenta</button>
   </div>
-  <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 1rem;">
-    <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
-  </div>
+  <div class="by">✦ by William ✦</div>
 </div>
 
 <div id="registerPanel" class="auth-panel">
@@ -134,9 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button id="registerBtn" class="auth-btn auth-btn-primary" onclick="doRegister()">Registrarse</button>
     <button class="auth-btn auth-btn-secondary" onclick="showLogin()">Volver</button>
   </div>
-  <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 1rem;">
-    <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
-  </div>
+  <div class="by">✦ by William ✦</div>
 </div>
 
 <div id="appPanel" style="display:none">
@@ -159,9 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="tab" onclick="setTab('año',this)">Año</button>
     </div>
     <div id="mc"></div>
-    <div style="text-align: center; padding: 2rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 0.5px solid rgba(255,255,255,0.08);">
-      <p style="color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 1px; font-weight: 300;">✦ by William ✦</p>
-    </div>
+    <div class="by" style="margin-top:2rem;border-top:0.5px solid rgba(255,255,255,0.08)">✦ by William ✦</div>
   </div>
 </div>
 
@@ -170,185 +167,97 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const API = 'https://habit-backend.fly.dev/api';
 let authToken = localStorage.getItem('ht_token');
-let pendingActions = new Map();
-let pendingDebounce = new Map();
+// Set de toggles en vuelo — evita doble-click spam
+const inFlight = new Set();
 
-function showMsg(id, text, type) {
-  const el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'auth-msg ' + type;
-  el.style.display = 'block';
-}
-function hideMsg(id) {
-  const el = document.getElementById(id);
-  el.style.display = 'none';
-}
-function setLoading(btnId, loading, defaultText) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.innerHTML = loading ? '<span class="loading-dots">Cargando</span>' : defaultText;
-}
+// ── Auth UI helpers ───────────────────────────────────────────
+function showMsg(id,text,type){const el=document.getElementById(id);el.textContent=text;el.className='auth-msg '+type;el.style.display='block';}
+function hideMsg(id){document.getElementById(id).style.display='none';}
+function setLoading(btnId,loading,txt){const b=document.getElementById(btnId);if(!b)return;b.disabled=loading;b.innerHTML=loading?'<span class="loading-dots">Cargando</span>':txt;}
 
-function validateRegister(email, username, password) {
-  let valid = true;
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  if (!emailOk) {
-    document.getElementById('regEmail').classList.add('error');
-    document.getElementById('errEmail').style.display = 'block';
-    valid = false;
-  } else {
-    document.getElementById('regEmail').classList.remove('error');
-    document.getElementById('errEmail').style.display = 'none';
-  }
-  if (username.length < 2) {
-    document.getElementById('regUsername').classList.add('error');
-    document.getElementById('errUsername').style.display = 'block';
-    valid = false;
-  } else {
-    document.getElementById('regUsername').classList.remove('error');
-    document.getElementById('errUsername').style.display = 'none';
-  }
-  if (password.length < 6) {
-    document.getElementById('regPassword').classList.add('error');
-    document.getElementById('errPassword').style.display = 'block';
-    valid = false;
-  } else {
-    document.getElementById('regPassword').classList.remove('error');
-    document.getElementById('errPassword').style.display = 'none';
-  }
-  return valid;
+function validateRegister(email,username,password){
+  let ok=true;
+  const eOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  document.getElementById('regEmail').classList.toggle('error',!eOk);
+  document.getElementById('errEmail').style.display=eOk?'none':'block';
+  if(!eOk)ok=false;
+  const uOk=username.length>=2;
+  document.getElementById('regUsername').classList.toggle('error',!uOk);
+  document.getElementById('errUsername').style.display=uOk?'none':'block';
+  if(!uOk)ok=false;
+  const pOk=password.length>=6;
+  document.getElementById('regPassword').classList.toggle('error',!pOk);
+  document.getElementById('errPassword').style.display=pOk?'none':'block';
+  if(!pOk)ok=false;
+  return ok;
 }
 
-async function apiFetch(path, options = {}) {
-  const res = await fetch(API + path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {}),
-      ...options.headers
-    }
-  });
-  if (res.status === 401) { logout(); return null; }
+// ── API helpers ───────────────────────────────────────────────
+async function apiFetch(path,options={}){
+  const res=await fetch(API+path,{...options,headers:{'Content-Type':'application/json',...(authToken?{'Authorization':'Bearer '+authToken}:{}),...(options.headers||{})}});
+  if(res.status===401){logout();return null;}
   return res;
 }
 
-async function loadHabitsFromAPI() {
-  const res = await apiFetch('/habits');
-  if (!res) return;
-  const habitsFromAPI = await res.json();
-  state.habits = habitsFromAPI.map(h => ({
-    id: String(h.id),
-    name: h.name,
-    color: h.color || '#4A90E2',
-    days: Object.fromEntries((h.completedDates || []).map(d => [d, true]))
-  }));
-  save();
-  render();
+async function loadHabitsFromAPI(){
+  const res=await apiFetch('/habits');
+  if(!res)return;
+  const data=await res.json();
+  state.habits=data.map(h=>({id:String(h.id),name:h.name,color:h.color||'#4A90E2',days:Object.fromEntries((h.completedDates||[]).map(d=>[d,true]))}));
+  save();render();
 }
 
-async function createHabitAPI(name, color) {
-  const res = await apiFetch('/habits', {
-    method: 'POST',
-    body: JSON.stringify({ name, color })
-  });
-  return res && res.ok ? await res.json() : null;
+async function createHabitAPI(name,color){
+  const res=await apiFetch('/habits',{method:'POST',body:JSON.stringify({name,color})});
+  return res&&res.ok?await res.json():null;
+}
+async function deleteHabitAPI(id){
+  const res=await apiFetch(`/habits/${id}`,{method:'DELETE'});
+  return res&&res.ok;
 }
 
-async function deleteHabitAPI(habitId) {
-  const res = await apiFetch(`/habits/${habitId}`, { method: 'DELETE' });
-  return res && res.ok;
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+// ── Auth actions ──────────────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
   hideMsg('loginMsg');
-  if (!email || !password) {
-    showMsg('loginMsg', 'Completa todos los campos', 'error');
-    return;
-  }
-  setLoading('loginBtn', true, 'Iniciar sesión');
-  try {
-    const res = await fetch(API + '/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const text = await res.text();
-    let data = {};
-    try { data = JSON.parse(text); } catch(e) {}
-    if (res.ok && data.token) {
-      authToken = data.token;
-      localStorage.setItem('ht_token', authToken);
-      showApp();
-      await loadHabitsFromAPI();
-    } else {
-      showMsg('loginMsg', data.error || 'Email o contraseña incorrectos', 'error');
-    }
-  } catch(e) {
-    showMsg('loginMsg', 'Error de conexión con el servidor', 'error');
-  }
-  setLoading('loginBtn', false, 'Iniciar sesión');
+  if(!email||!password){showMsg('loginMsg','Completa todos los campos','error');return;}
+  setLoading('loginBtn',true,'Iniciar sesión');
+  try{
+    const res=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const text=await res.text();let data={};try{data=JSON.parse(text);}catch(e){}
+    if(res.ok&&data.token){authToken=data.token;localStorage.setItem('ht_token',authToken);showApp();await loadHabitsFromAPI();}
+    else showMsg('loginMsg',data.error||'Email o contraseña incorrectos','error');
+  }catch(e){showMsg('loginMsg','Error de conexión','error');}
+  setLoading('loginBtn',false,'Iniciar sesión');
 }
 
-async function doRegister() {
-  const email = document.getElementById('regEmail').value.trim();
-  const username = document.getElementById('regUsername').value.trim();
-  const password = document.getElementById('regPassword').value;
+async function doRegister(){
+  const email=document.getElementById('regEmail').value.trim();
+  const username=document.getElementById('regUsername').value.trim();
+  const password=document.getElementById('regPassword').value;
   hideMsg('registerMsg');
-  if (!validateRegister(email, username, password)) return;
-  setLoading('registerBtn', true, 'Registrarse');
-  try {
-    const res = await fetch(API + '/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, username, password })
-    });
-    const text = await res.text();
-    let data = {};
-    try { data = JSON.parse(text); } catch(e) {}
-    if (res.ok) {
-      showMsg('registerMsg', '¡Cuenta creada! Ahora inicia sesión.', 'success');
-      setTimeout(() => {
-        showLogin();
-        document.getElementById('loginEmail').value = email;
-      }, 1500);
-    } else {
-      showMsg('registerMsg', data.error || 'No se pudo registrar. Intenta con otro email.', 'error');
-    }
-  } catch(e) {
-    showMsg('registerMsg', 'Error de conexión con el servidor', 'error');
-  }
-  setLoading('registerBtn', false, 'Registrarse');
+  if(!validateRegister(email,username,password))return;
+  setLoading('registerBtn',true,'Registrarse');
+  try{
+    const res=await fetch(API+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,username,password})});
+    const text=await res.text();let data={};try{data=JSON.parse(text);}catch(e){}
+    if(res.ok){showMsg('registerMsg','¡Cuenta creada! Ahora inicia sesión.','success');setTimeout(()=>{showLogin();document.getElementById('loginEmail').value=email;},1500);}
+    else showMsg('registerMsg',data.error||'No se pudo registrar. Intenta con otro email.','error');
+  }catch(e){showMsg('registerMsg','Error de conexión','error');}
+  setLoading('registerBtn',false,'Registrarse');
 }
 
-function showApp() {
-  document.getElementById('authPanel').style.display = 'none';
-  document.getElementById('registerPanel').style.display = 'none';
-  document.getElementById('appPanel').style.display = 'block';
-}
+function showApp(){document.getElementById('authPanel').style.display='none';document.getElementById('registerPanel').style.display='none';document.getElementById('appPanel').style.display='block';}
+function showLogin(){document.getElementById('registerPanel').style.display='none';document.getElementById('authPanel').style.display='block';}
+function showRegister(){document.getElementById('authPanel').style.display='none';document.getElementById('registerPanel').style.display='block';}
+function logout(){localStorage.removeItem('ht_token');authToken=null;location.reload();}
 
-function showLogin() {
-  document.getElementById('registerPanel').style.display = 'none';
-  document.getElementById('authPanel').style.display = 'block';
-}
+document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('regPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
 
-function showRegister() {
-  document.getElementById('authPanel').style.display = 'none';
-  document.getElementById('registerPanel').style.display = 'block';
-}
-
-function logout() {
-  localStorage.removeItem('ht_token');
-  authToken = null;
-  location.reload();
-}
-
-document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('regPassword').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
-
+// ── Tracker core ──────────────────────────────────────────────
 const YEAR=2026,MONTHS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],DAYS=['L','M','X','J','V','S','D'],COLORS=['#4A90E2','#7B68EE','#50C878','#FF7043','#FFB300','#26C6DA','#EC407A','#66BB6A','#AB47BC','#EF5350'],SK='ht2026v3';
 let state={habits:[]},selColor=COLORS[0],curTab='hoy';
 function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
@@ -356,21 +265,41 @@ function dim(y,m){return new Date(y,m+1,0).getDate()}
 function dowf(y,m,d){let r=new Date(y,m,d).getDay();return r===0?6:r-1}
 const T0=new Date(),TODAY=dk(T0.getFullYear(),T0.getMonth(),T0.getDate());
 document.getElementById('tc').textContent=`${DAYS[dowf(T0.getFullYear(),T0.getMonth(),T0.getDate())]} ${T0.getDate()} ${MONTHS[T0.getMonth()]}`;
-function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r)}catch(e){}}
-function save(){try{localStorage.setItem(SK,JSON.stringify(state))}catch(e){}}
+function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r);}catch(e){}}
+function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}}
 function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');render();}
 function renderCp(){document.getElementById('cp').innerHTML=COLORS.map(c=>`<div class="cb${c===selColor?' sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');}
-function pickColor(c){selColor=c;renderCp();render();}
+function pickColor(c){selColor=c;renderCp();}
 
+// ── Render HOY (sin re-render en toggle, usa DOM directo) ─────
 function renderHoy(){
   if(!state.habits.length)return`<div class="empty-state">Agrega tu primera actividad arriba ↑</div>`;
   const done=state.habits.filter(h=>h.days[TODAY]).length,total=state.habits.length,pct=Math.round(done/total*100);
-  let html=`<div class="today-view"><div class="today-summary"><div class="summary-chip"><strong>${done}/${total}</strong>completadas hoy</div><div class="summary-chip"><strong>${pct}%</strong>del día</div></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+  let html=`<div class="today-view">
+    <div class="today-summary">
+      <div class="summary-chip"><strong id="sc-done">${done}/${total}</strong>completadas hoy</div>
+      <div class="summary-chip"><strong id="sc-pct">${pct}%</strong>del día</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="sc-bar" style="width:${pct}%"></div></div>`;
   state.habits.forEach(h=>{
     const isDone=!!h.days[TODAY];
-    html+=`<div class="habit-row${isDone?' done':''}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')"><div class="check-box">${isDone?'✓':''}</div><div class="hdot" style="background:${h.color}"></div><span class="hname">${h.name}</span><div class="hdel" onclick="event.stopPropagation();delHabit(event,'${h.id}')">×</div></div>`;
+    html+=`<div class="habit-row${isDone?' done':''}" id="hr-${h.id}" style="--hc:${h.color}" onclick="toggleDay('${h.id}','${TODAY}')">
+      <div class="check-box" id="cb-${h.id}-${TODAY}">${isDone?'✓':''}</div>
+      <div class="hdot" style="background:${h.color}"></div>
+      <span class="hname">${h.name}</span>
+      <div class="hdel" onclick="event.stopPropagation();delHabit(event,'${h.id}')">×</div>
+    </div>`;
   });
   return html+'</div>';
+}
+
+// Actualiza solo el summary sin re-renderizar todo
+function updateSummary(){
+  const done=state.habits.filter(h=>h.days[TODAY]).length,total=state.habits.length,pct=Math.round(done/total*100);
+  const sd=document.getElementById('sc-done'),sp=document.getElementById('sc-pct'),sb=document.getElementById('sc-bar');
+  if(sd)sd.textContent=`${done}/${total}`;
+  if(sp)sp.textContent=`${pct}%`;
+  if(sb)sb.style.width=`${pct}%`;
 }
 
 function renderSemana(){
@@ -379,10 +308,13 @@ function renderSemana(){
   const week=Array.from({length:7},(_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return{date:d,key:dk(d.getFullYear(),d.getMonth(),d.getDate()),i};});
   let html=`<div class="week-wrap"><table class="week-table"><thead><tr><th style="text-align:left">Actividad</th>`;
   week.forEach(({date,key,i})=>{const isT=key===TODAY;html+=`<th class="${isT?'tc':''}">${DAYS[i]}<br><span style="font-size:11px">${date.getDate()}</span></th>`;});
-  html+=`</table></thead><tbody>`;
+  html+=`</tr></thead><tbody>`;
   state.habits.forEach(h=>{
     html+=`<tr><td class="act-label"><div class="act-label-inner"><div style="width:8px;height:8px;border-radius:50%;background:${h.color};flex-shrink:0"></div>${h.name}</div></td>`;
-    week.forEach(({key,date})=>{const done=!!h.days[key],future=date>T0;html+=`<td style="text-align:center;padding:2px"><div class="dchk${done?' done':''}${future?' future':''}" style="--hc:${h.color}" onclick="${!future?`toggleDay('${h.id}','${key}')`:''}">${done?'✓':''}</div></td>`;});
+    week.forEach(({key,date})=>{
+      const done=!!h.days[key],future=date>T0;
+      html+=`<td style="text-align:center;padding:2px"><div class="dchk${done?' done':''}${future?' future':''}" id="wc-${h.id}-${key}" style="--hc:${h.color}" onclick="${!future?`toggleDay('${h.id}','${key}')`:''}">${done?'✓':''}</div></td>`;
+    });
     html+=`</tr>`;
   });
   return html+`</tbody></table></div>`;
@@ -405,7 +337,7 @@ function renderYear(){
     let done=0,avail=0;
     for(let m=0;m<12;m++)for(let d=1;d<=dim(YEAR,m);d++){const dt=new Date(YEAR,m,d);if(dt<=T0){avail++;if(h.days[dk(YEAR,m,d)])done++;}}
     const pct=avail>0?Math.round(done/avail*100):0;
-    html+=`<div class="year-section"><div class="ylabel"><div style="width:10px;height:10px;border-radius:50%;background:${h.color};flex-shrink:0"></div><span>${h.name}</span><span class="ypct">${pct}% · ${done} días</span></div><div class="ygrid-wrap"><div class="month-row" id="yr-${h.id}"></div></div></div>`;
+    html+=`<div class="year-section"><div class="ylabel"><div style="width:10px;height:10px;border-radius:50%;background:${h.color};flex-shrink:0"></div><span>${h.name}</span><span class="ypct" id="yp-${h.id}">${pct}% · ${done} días</span></div><div class="ygrid-wrap"><div class="month-row" id="yr-${h.id}"></div></div></div>`;
   });
   setTimeout(()=>{
     state.habits.forEach(h=>{
@@ -423,8 +355,9 @@ function renderYear(){
               const dt=new Date(YEAR,m,cell.d),future=dt>T0,done=!!h.days[cell.key],isT=cell.key===TODAY;
               el.className='ycell'+(future?' fut':'')+(isT?' tring':'');
               el.style.background=done?h.color:(future?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)');
+              el.id=`yc-${h.id}-${cell.key}`;
               if(!future){
-                el.onclick=()=>{toggleDay(h.id,cell.key);};
+                el.onclick=()=>toggleDay(h.id,cell.key);
                 el.onmouseenter=e=>{tip.textContent=`${cell.d} ${MONTHS[m]} — ${h.days[cell.key]?'✓ Hecho':'Pendiente'}`;tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-28)+'px';};
                 el.onmouseleave=()=>{tip.style.display='none';};
                 el.onmousemove=e=>{tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-28)+'px';};
@@ -436,6 +369,9 @@ function renderYear(){
         });
         mb.appendChild(cells);cont.appendChild(mb);
       }
+      // drag scroll
+      const wrap=cont.closest('.ygrid-wrap');
+      if(wrap){let dn=false,sx,sl;wrap.onmousedown=e=>{dn=true;sx=e.pageX-wrap.offsetLeft;sl=wrap.scrollLeft;e.preventDefault();};wrap.onmouseleave=()=>dn=false;wrap.onmouseup=()=>dn=false;wrap.onmousemove=e=>{if(!dn)return;wrap.scrollLeft=sl-(e.pageX-wrap.offsetLeft-sx);};}
     });
   },0);
   return html;
@@ -444,141 +380,100 @@ function renderYear(){
 function render(){
   renderCp();
   const mc=document.getElementById('mc');
-  if(curTab==='hoy') mc.innerHTML=renderHoy();
-  else if(curTab==='semana') mc.innerHTML=renderSemana();
+  if(curTab==='hoy')mc.innerHTML=renderHoy();
+  else if(curTab==='semana')mc.innerHTML=renderSemana();
   else mc.innerHTML=renderYear();
-  if(curTab==='año'){setTimeout(()=>{document.querySelectorAll('.ygrid-wrap').forEach(el=>{el.style.cursor='grab';});},50);}
 }
+
 load();
 
-window.addHabit = async function() {
-  const btn = document.getElementById('addBtn');
-  const name = document.getElementById('nn').value.trim();
-  if (!name) return;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading-dots">Agregando</span>';
-  try {
-    const newHabit = await createHabitAPI(name, selColor);
-    if (newHabit) {
-      await loadHabitsFromAPI();
-      document.getElementById('nn').value = '';
-      selColor = COLORS[state.habits.length % COLORS.length];
-      renderCp();
-    } else {
-      alert('Error al crear hábito');
-    }
-  } catch(e) {
-    alert('Error de conexión');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '+ Agregar';
-  }
-};
+// ── toggleDay: optimistic, sin re-render completo ─────────────
+window.toggleDay = function(hid, key) {
+  const actionKey = hid+'_'+key;
+  if(inFlight.has(actionKey)) return; // bloquea spam
+  inFlight.add(actionKey);
 
-// Optimistic UI + Debounce + Anti-spam
-window.toggleDay = async function(hid, key) {
-  const actionKey = `${hid}_${key}`;
-  
-  // Evitar ejecuciones múltiples mientras se procesa
-  if (pendingActions.has(actionKey)) return;
-  pendingActions.set(actionKey, true);
-  
-  // Guardar estado anterior
-  const habit = state.habits.find(h => h.id === hid);
-  if (!habit) {
-    pendingActions.delete(actionKey);
-    return;
-  }
-  
-  const wasCompleted = !!habit.days[key];
-  
-  // Optimistic update: actualizar UI inmediatamente
-  if (wasCompleted) {
-    delete habit.days[key];
-  } else {
-    habit.days[key] = true;
-  }
+  const habit = state.habits.find(h=>h.id===String(hid));
+  if(!habit){inFlight.delete(actionKey);return;}
+
+  const was = !!habit.days[key];
+
+  // 1. Actualiza estado local al instante
+  if(was) delete habit.days[key]; else habit.days[key]=true;
   save();
-  
-  // Actualizar la celda específica si existe
-  const cell = document.querySelector(`[data-habit="${hid}"][data-date="${key}"]`);
-  if (cell) {
-    cell.style.background = wasCompleted ? 'rgba(255,255,255,0.07)' : habit.color;
-  } else {
-    // Fallback: actualizar vista actual
-    const mc = document.getElementById('mc');
-    if (curTab === 'hoy') mc.innerHTML = renderHoy();
-    else if (curTab === 'semana') mc.innerHTML = renderSemana();
-    else {
-      mc.innerHTML = renderYear();
-      setTimeout(() => { document.querySelectorAll('.ygrid-wrap').forEach(el => { el.style.cursor = 'grab'; }); }, 50);
-    }
+
+  // 2. Actualiza DOM directamente sin re-render
+  const now = !was;
+
+  // Vista HOY
+  const row = document.getElementById('hr-'+hid);
+  const cb  = document.getElementById('cb-'+hid+'-'+key);
+  if(row && cb){
+    row.classList.toggle('done', now);
+    cb.textContent = now ? '✓' : '';
+    updateSummary();
   }
-  
-  // Llamar a la API en segundo plano
-  try {
-    const completed = await (async () => {
-      const res = await fetch(API + `/habits/${hid}/toggle`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + authToken
-        },
-        body: JSON.stringify({ date: key })
-      });
-      if (res.ok) return (await res.json()).completed;
-      return null;
-    })();
-    
-    if (completed === null) {
-      // Revertir si falló
-      if (wasCompleted) {
-        habit.days[key] = true;
-      } else {
-        delete habit.days[key];
-      }
-      save();
-      render();
-    }
-  } catch(e) {
-    // Revertir en caso de error de red
-    if (wasCompleted) {
-      habit.days[key] = true;
-    } else {
-      delete habit.days[key];
-    }
-    save();
-    render();
-    console.error('Error toggling day:', e);
-  } finally {
-    pendingActions.delete(actionKey);
+  // Vista SEMANA
+  const wc = document.getElementById('wc-'+hid+'-'+key);
+  if(wc){wc.classList.toggle('done',now);wc.textContent=now?'✓':'';}
+  // Vista AÑO
+  const yc = document.getElementById('yc-'+hid+'-'+key);
+  if(yc){yc.style.background=now?habit.color:'rgba(255,255,255,.09)';}
+  // Actualiza % en vista año
+  if(curTab==='año'){
+    let done=0,avail=0;
+    for(let m=0;m<12;m++)for(let d=1;d<=dim(YEAR,m);d++){const dt=new Date(YEAR,m,d);if(dt<=T0){avail++;if(habit.days[dk(YEAR,m,d)])done++;}}
+    const pct=avail>0?Math.round(done/avail*100):0;
+    const yp=document.getElementById('yp-'+hid);
+    if(yp)yp.textContent=`${pct}% · ${done} días`;
   }
+
+  // 3. Llama API en segundo plano, revierte si falla
+  fetch(API+`/habits/${hid}/toggle`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+    body:JSON.stringify({date:key})
+  }).then(r=>{
+    if(!r.ok) throw new Error('fail');
+  }).catch(()=>{
+    // Revertir
+    if(was) habit.days[key]=true; else delete habit.days[key];
+    save();render();
+  }).finally(()=>{
+    inFlight.delete(actionKey);
+  });
 };
 
-window.delHabit = async function(e, id) {
+window.addHabit = async function(){
+  const btn=document.getElementById('addBtn');
+  const name=document.getElementById('nn').value.trim();
+  if(!name)return;
+  btn.disabled=true;btn.innerHTML='<span class="loading-dots">Agregando</span>';
+  try{
+    const newHabit=await createHabitAPI(name,selColor);
+    if(newHabit){
+      await loadHabitsFromAPI();
+      document.getElementById('nn').value='';
+      selColor=COLORS[state.habits.length%COLORS.length];
+      renderCp();
+    }
+  }catch(e){}
+  btn.disabled=false;btn.innerHTML='+ Agregar';
+};
+
+window.delHabit = async function(e,id){
   e.stopPropagation();
-  if (!confirm('¿Eliminar esta actividad?')) return;
-  const delBtn = e.target;
-  const originalText = delBtn.textContent;
-  delBtn.textContent = '...';
-  delBtn.style.opacity = '0.7';
-  delBtn.style.cursor = 'wait';
-  try {
-    const success = await deleteHabitAPI(id);
-    if (success) { await loadHabitsFromAPI(); }
-  } finally {
-    delBtn.textContent = originalText;
-    delBtn.style.opacity = '';
-    delBtn.style.cursor = '';
-  }
+  if(!confirm('¿Eliminar esta actividad?'))return;
+  // Optimistic: quita del DOM inmediatamente
+  state.habits=state.habits.filter(h=>h.id!==String(id));
+  save();render();
+  // Sincroniza con servidor
+  deleteHabitAPI(id);
 };
 
-if (authToken) {
-  showApp();
-  loadHabitsFromAPI();
-} else {
-  document.getElementById('authPanel').style.display = 'block';
-}
+// ── Init ──────────────────────────────────────────────────────
+if(authToken){showApp();loadHabitsFromAPI();}
+else{document.getElementById('authPanel').style.display='block';}
 render();
 </script>
 </body>
