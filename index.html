@@ -475,6 +475,14 @@ window.delHabit = async function(e,id){
 if(authToken){showApp();loadHabitsFromAPI();}
 else{document.getElementById('authPanel').style.display='block';}
 render();
+
+// Recarga desde servidor al volver a la app
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&authToken)loadHabitsFromAPI();
+});
+window.addEventListener('focus',()=>{
+  if(authToken)loadHabitsFromAPI();
+});
 </script>
 </body>
 </html>
